@@ -631,29 +631,61 @@ function bindSelect(id, key) {
   });
 }
 
-/* ---------------------------- full screen ---------------------------- */
+/* ---------------------------- present mode ---------------------------- *
+ *
+ * The visible effect comes from `body.presenting` (pure CSS, always works).
+ * Native fullscreen is requested on top of that purely to hide the browser
+ * chrome; if it is unavailable or refused, presenting still fills the window.
+ */
 
 function fullscreenElement() {
   return document.fullscreenElement || document.webkitFullscreenElement || null;
 }
 
-function toggleFullscreen() {
+function isPresenting() {
+  return document.body.classList.contains('presenting');
+}
+
+function enterPresent() {
+  document.body.classList.add('presenting');
+  syncPresentButton();
+
   const stage = $('stage');
+  const request = stage.requestFullscreen || stage.webkitRequestFullscreen;
+  if (!request) return; // no API (iPhone): the CSS overlay is the whole show
+  try {
+    // Safari's prefixed version returns undefined rather than a promise, and
+    // throws synchronously when it objects — hence both guards.
+    const result = request.call(stage);
+    if (result && typeof result.catch === 'function') result.catch(() => {});
+  } catch (e) { /* overlay already covers the window */ }
+}
+
+function exitPresent() {
+  document.body.classList.remove('presenting');
+  syncPresentButton();
+
   if (fullscreenElement()) {
-    (document.exitFullscreen || document.webkitExitFullscreen).call(document);
-  } else {
-    const request = stage.requestFullscreen || stage.webkitRequestFullscreen;
-    // Safari <16.4 and any iPhone: the API simply isn't there.
-    if (!request) {
-      flash($('btn-full'), 'Not supported');
-      return;
-    }
-    Promise.resolve(request.call(stage)).catch(() => flash($('btn-full'), 'Blocked'));
+    const exit = document.exitFullscreen || document.webkitExitFullscreen;
+    try {
+      const result = exit.call(document);
+      if (result && typeof result.catch === 'function') result.catch(() => {});
+    } catch (e) { /* nothing else to do */ }
   }
 }
 
-function syncFullscreenButton() {
-  $('btn-full').textContent = fullscreenElement() ? 'Exit full screen' : 'Full screen';
+function togglePresent() {
+  isPresenting() ? exitPresent() : enterPresent();
+}
+
+function syncPresentButton() {
+  $('btn-full').textContent = isPresenting() ? 'Exit full screen' : 'Full screen';
+}
+
+/* Leaving native fullscreen (Esc, or the green button on macOS) should drop
+ * presenting too, so the two never disagree. */
+function onFullscreenChange() {
+  if (!fullscreenElement() && isPresenting()) exitPresent();
 }
 
 function flash(button, message) {
@@ -723,31 +755,26 @@ function init() {
     }
   });
 
-  $('btn-clip').addEventListener('click', async (e) => {
-    const button = e.currentTarget;
-    try {
-      const blob = await renderPNG();
-      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-      flash(button, 'Copied!');
-    } catch (err) {
-      // Firefox lacks ClipboardItem image support; fall back to a download.
-      flash(button, 'Not supported');
-      console.error(err);
-    }
-  });
+  $('btn-full').addEventListener('click', togglePresent);
+  document.addEventListener('fullscreenchange', onFullscreenChange);
+  document.addEventListener('webkitfullscreenchange', onFullscreenChange);
 
-  $('btn-full').addEventListener('click', toggleFullscreen);
-  document.addEventListener('fullscreenchange', syncFullscreenButton);
-  document.addEventListener('webkitfullscreenchange', syncFullscreenButton);
-
-  // `F` presents, but not while someone is typing code into a field.
   document.addEventListener('keydown', (e) => {
+    // Esc leaves present mode. Native fullscreen swallows this event and
+    // fires fullscreenchange instead, so this covers the overlay-only case.
+    if (e.key === 'Escape' && isPresenting()) {
+      e.preventDefault();
+      exitPresent();
+      return;
+    }
+
+    // `F` presents, but not while someone is typing code into a field.
     if (e.key !== 'f' && e.key !== 'F') return;
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     const tag = document.activeElement?.tagName;
     if (tag === 'TEXTAREA' || tag === 'INPUT' || tag === 'SELECT') return;
     e.preventDefault();
-    toggleFullscreen();
+    togglePresent();
   });
 
   render();

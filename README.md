@@ -43,6 +43,18 @@ editor and shows the rendered card alone on a neutral backdrop — useful for
 projecting code in a lecture. Because the card is an SVG with a `viewBox`, it
 scales up to the display without going soft. `Esc` exits.
 
+The effect is driven by a `body.presenting` class, i.e. plain CSS that fills the
+viewport. The native Fullscreen API is requested *on top of* that, purely to
+hide the browser's own chrome. If that request is unavailable or refused — an
+iPhone has no element Fullscreen API at all — the button still works, you just
+keep the browser toolbar.
+
+One trap worth remembering if you touch the CSS: `:fullscreen` and
+`:-webkit-full-screen` must live in **separate rules**. A selector list is
+discarded in its entirety when any selector in it is unrecognized, so grouping
+them means whichever browser knows only one of the two silently applies
+neither.
+
 ## Local development
 
 No toolchain. Serve the directory with anything:

@@ -203,29 +203,43 @@ input[type="checkbox"] { accent-color: var(--ui-accent); }
   border-radius: 4px;
 }
 
-/* ---------- full screen / present mode ---------- */
+/* ---------- present mode ---------- */
 
-/* The stage element itself goes fullscreen. Drop the checkerboard for a
- * neutral backdrop, and let the SVG scale up to fill the screen — its
- * viewBox + default preserveAspectRatio handle the letterboxing. */
-.stage:fullscreen,
-.stage:-webkit-full-screen {
+/* Presenting is driven by this class, NOT by :fullscreen — the native API is
+ * only a bonus layered on top to hide the browser chrome. That way the button
+ * always does something visible, even where the Fullscreen API is missing
+ * (iPhone) or refuses the request.
+ *
+ * Note: :fullscreen and :-webkit-full-screen must stay in SEPARATE rules
+ * below. A selector list is discarded whole if any selector in it is
+ * unrecognized, which silently killed all of this styling in Safari. */
+
+body.presenting .topbar,
+body.presenting .pane-input,
+body.presenting .pane-preview > .pane-head {
+  display: none;
+}
+
+body.presenting main { grid-template-columns: 1fr; }
+
+body.presenting .stage {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
   padding: 3vmin;
   background: #0a0d12;
   background-image: none;
 }
 
-.stage:fullscreen svg,
-.stage:-webkit-full-screen svg {
+body.presenting .stage svg {
   width: 100%;
   height: 100%;
   max-width: none;
   border-radius: 0;
 }
 
-/* Hint that Esc gets you out, then fade away. */
-.stage:fullscreen::after,
-.stage:-webkit-full-screen::after {
+/* Hint how to get out, then fade away. */
+body.presenting .stage::after {
   content: "Esc to exit";
   position: fixed;
   bottom: 16px;
@@ -237,6 +251,7 @@ input[type="checkbox"] { accent-color: var(--ui-accent); }
   font-size: 12px;
   letter-spacing: 0.04em;
   animation: fade-hint 2.6s ease forwards;
+  pointer-events: none;
 }
 
 @keyframes fade-hint {
@@ -245,9 +260,14 @@ input[type="checkbox"] { accent-color: var(--ui-accent); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .stage:fullscreen::after,
-  .stage:-webkit-full-screen::after { animation: none; opacity: 0.7; }
+  body.presenting .stage::after { animation: none; opacity: 0.7; }
 }
+
+/* When the native API does engage, the stage is the fullscreen element and
+ * gets a black backdrop from the UA. Keep our padding on it. Separate rules,
+ * one per prefix — see the note above. */
+.stage:fullscreen { padding: 3vmin; background: #0a0d12; background-image: none; }
+.stage:-webkit-full-screen { padding: 3vmin; background: #0a0d12; background-image: none; }
 
 @media (max-width: 900px) {
   main { grid-template-columns: 1fr; }
