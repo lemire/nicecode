@@ -631,6 +631,31 @@ function bindSelect(id, key) {
   });
 }
 
+/* ---------------------------- full screen ---------------------------- */
+
+function fullscreenElement() {
+  return document.fullscreenElement || document.webkitFullscreenElement || null;
+}
+
+function toggleFullscreen() {
+  const stage = $('stage');
+  if (fullscreenElement()) {
+    (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+  } else {
+    const request = stage.requestFullscreen || stage.webkitRequestFullscreen;
+    // Safari <16.4 and any iPhone: the API simply isn't there.
+    if (!request) {
+      flash($('btn-full'), 'Not supported');
+      return;
+    }
+    Promise.resolve(request.call(stage)).catch(() => flash($('btn-full'), 'Blocked'));
+  }
+}
+
+function syncFullscreenButton() {
+  $('btn-full').textContent = fullscreenElement() ? 'Exit full screen' : 'Full screen';
+}
+
 function flash(button, message) {
   const original = button.textContent;
   button.textContent = message;
@@ -709,6 +734,20 @@ function init() {
       flash(button, 'Not supported');
       console.error(err);
     }
+  });
+
+  $('btn-full').addEventListener('click', toggleFullscreen);
+  document.addEventListener('fullscreenchange', syncFullscreenButton);
+  document.addEventListener('webkitfullscreenchange', syncFullscreenButton);
+
+  // `F` presents, but not while someone is typing code into a field.
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'f' && e.key !== 'F') return;
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    const tag = document.activeElement?.tagName;
+    if (tag === 'TEXTAREA' || tag === 'INPUT' || tag === 'SELECT') return;
+    e.preventDefault();
+    toggleFullscreen();
   });
 
   render();

@@ -36,6 +36,13 @@ Theme, background gradient, font, font size, padding, corner radius, PNG scale
 The `Transparent` background exports a PNG with a real alpha channel, which is
 handy for dropping onto slides.
 
+## Full screen
+
+**Full screen** (or the `F` key, when focus isn't in a text field) hides the
+editor and shows the rendered card alone on a neutral backdrop — useful for
+projecting code in a lecture. Because the card is an SVG with a `viewBox`, it
+scales up to the display without going soft. `Esc` exits.
+
 ## Local development
 
 No toolchain. Serve the directory with anything:

@@ -203,6 +203,52 @@ input[type="checkbox"] { accent-color: var(--ui-accent); }
   border-radius: 4px;
 }
 
+/* ---------- full screen / present mode ---------- */
+
+/* The stage element itself goes fullscreen. Drop the checkerboard for a
+ * neutral backdrop, and let the SVG scale up to fill the screen — its
+ * viewBox + default preserveAspectRatio handle the letterboxing. */
+.stage:fullscreen,
+.stage:-webkit-full-screen {
+  padding: 3vmin;
+  background: #0a0d12;
+  background-image: none;
+}
+
+.stage:fullscreen svg,
+.stage:-webkit-full-screen svg {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  border-radius: 0;
+}
+
+/* Hint that Esc gets you out, then fade away. */
+.stage:fullscreen::after,
+.stage:-webkit-full-screen::after {
+  content: "Esc to exit";
+  position: fixed;
+  bottom: 16px;
+  right: 20px;
+  padding: 5px 11px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  animation: fade-hint 2.6s ease forwards;
+}
+
+@keyframes fade-hint {
+  0%, 60% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stage:fullscreen::after,
+  .stage:-webkit-full-screen::after { animation: none; opacity: 0.7; }
+}
+
 @media (max-width: 900px) {
   main { grid-template-columns: 1fr; }
   .pane-input { border-right: 0; border-bottom: 1px solid var(--ui-line); }
