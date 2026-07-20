@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>nicecode — beautiful code screenshots</title>
+<meta name="description" content="Paste code, get a beautiful screenshot. Exports PNG and SVG. Runs entirely in your browser.">
+<link rel="stylesheet" href="style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='13' font-size='13'>&#127912;</text></svg>">
+</head>
+<body>
+
+<header class="topbar">
+  <h1>nicecode</h1>
+  <span class="tagline">paste code &rarr; pretty picture</span>
+  <div class="spacer"></div>
+  <button id="btn-png" class="primary">Download PNG</button>
+  <button id="btn-svg">Download SVG</button>
+  <button id="btn-clip" title="Copy PNG to clipboard">Copy image</button>
+</header>
+
+<main>
+  <section class="pane pane-input">
+    <div class="pane-head">
+      <label for="code">Source code</label>
+      <span id="linewarn" class="warn" hidden></span>
+    </div>
+    <textarea id="code" spellcheck="false" autocapitalize="off" autocorrect="off"></textarea>
+
+    <div class="controls">
+      <div class="ctl">
+        <label for="lang">Language</label>
+        <select id="lang"></select>
+      </div>
+      <div class="ctl">
+        <label for="theme">Theme</label>
+        <select id="theme"></select>
+      </div>
+      <div class="ctl">
+        <label for="bg">Background</label>
+        <select id="bg"></select>
+      </div>
+      <div class="ctl">
+        <label for="font">Font</label>
+        <select id="font"></select>
+      </div>
+
+      <div class="ctl">
+        <label for="fontsize">Font size <output id="fontsize-out"></output></label>
+        <input type="range" id="fontsize" min="10" max="32" step="1">
+      </div>
+      <div class="ctl">
+        <label for="padding">Padding <output id="padding-out"></output></label>
+        <input type="range" id="padding" min="0" max="160" step="4">
+      </div>
+      <div class="ctl">
+        <label for="radius">Corner radius <output id="radius-out"></output></label>
+        <input type="range" id="radius" min="0" max="40" step="1">
+      </div>
+      <div class="ctl">
+        <label for="scale">PNG scale <output id="scale-out"></output></label>
+        <input type="range" id="scale" min="1" max="4" step="1">
+      </div>
+
+      <div class="ctl ctl-wide">
+        <label for="title">Window title</label>
+        <input type="text" id="title" placeholder="Main.java">
+      </div>
+
+      <div class="ctl ctl-checks">
+        <label><input type="checkbox" id="opt-dots"> Traffic lights</label>
+        <label><input type="checkbox" id="opt-titlebar"> Title bar</label>
+        <label><input type="checkbox" id="opt-nums"> Line numbers</label>
+        <label><input type="checkbox" id="opt-shadow"> Drop shadow</label>
+        <label><input type="checkbox" id="opt-guide"> 80-column guide</label>
+      </div>
+    </div>
+  </section>
+
+  <section class="pane pane-preview">
+    <div class="pane-head">
+      <label>Preview</label>
+      <span id="dims" class="dims"></span>
+    </div>
+    <div id="stage" class="stage"></div>
+  </section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11.11.1/highlight.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,209 @@
+:root {
+  --ui-bg: #0e1116;
+  --ui-panel: #161b22;
+  --ui-panel-2: #1c232d;
+  --ui-line: #2a323d;
+  --ui-fg: #e6edf3;
+  --ui-dim: #8b949e;
+  --ui-accent: #4c8dff;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+
+* { box-sizing: border-box; }
+
+html, body { height: 100%; }
+
+body {
+  margin: 0;
+  background: var(--ui-bg);
+  color: var(--ui-fg);
+  font: 14px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---------- top bar ---------- */
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: var(--ui-panel);
+  border-bottom: 1px solid var(--ui-line);
+  flex: 0 0 auto;
+}
+
+.topbar h1 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.tagline { color: var(--ui-dim); font-size: 13px; }
+
+.spacer { flex: 1; }
+
+button {
+  font: inherit;
+  font-size: 13px;
+  color: var(--ui-fg);
+  background: var(--ui-panel-2);
+  border: 1px solid var(--ui-line);
+  border-radius: 7px;
+  padding: 7px 13px;
+  cursor: pointer;
+}
+
+button:hover { background: #232c38; }
+
+button.primary {
+  background: var(--ui-accent);
+  border-color: var(--ui-accent);
+  color: #fff;
+  font-weight: 550;
+}
+
+button.primary:hover { background: #3d7cf0; }
+
+/* ---------- layout ---------- */
+
+main {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(380px, 42%) 1fr;
+  min-height: 0;
+}
+
+.pane {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.pane-input { border-right: 1px solid var(--ui-line); }
+
+.pane-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--ui-line);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ui-dim);
+  flex: 0 0 auto;
+}
+
+.warn { color: #f0a04b; text-transform: none; letter-spacing: 0; }
+.dims { margin-left: auto; text-transform: none; letter-spacing: 0; }
+
+/* ---------- editor ---------- */
+
+#code {
+  flex: 1;
+  min-height: 180px;
+  resize: none;
+  border: 0;
+  outline: 0;
+  padding: 14px;
+  background: var(--ui-bg);
+  color: var(--ui-fg);
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 1.55;
+  tab-size: 4;
+}
+
+/* ---------- controls ---------- */
+
+.controls {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px 16px;
+  padding: 14px;
+  border-top: 1px solid var(--ui-line);
+  background: var(--ui-panel);
+  max-height: 46vh;
+  overflow-y: auto;
+}
+
+.ctl { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.ctl-wide { grid-column: 1 / -1; }
+
+.ctl > label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ui-dim);
+}
+
+.ctl output { color: var(--ui-fg); font-variant-numeric: tabular-nums; }
+
+select, input[type="text"] {
+  font: inherit;
+  font-size: 13px;
+  color: var(--ui-fg);
+  background: var(--ui-panel-2);
+  border: 1px solid var(--ui-line);
+  border-radius: 6px;
+  padding: 6px 8px;
+  width: 100%;
+}
+
+input[type="range"] { width: 100%; accent-color: var(--ui-accent); }
+
+.ctl-checks {
+  grid-column: 1 / -1;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+}
+
+.ctl-checks label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--ui-fg);
+  text-transform: none;
+  letter-spacing: 0;
+  cursor: pointer;
+}
+
+input[type="checkbox"] { accent-color: var(--ui-accent); }
+
+/* ---------- preview stage ---------- */
+
+.stage {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 24px;
+  display: grid;
+  place-items: center;
+  /* checkerboard so transparent backgrounds are legible */
+  background-color: #0a0d12;
+  background-image:
+    linear-gradient(45deg, #12161d 25%, transparent 25%),
+    linear-gradient(-45deg, #12161d 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #12161d 75%),
+    linear-gradient(-45deg, transparent 75%, #12161d 75%);
+  background-size: 20px 20px;
+  background-position: 0 0, 0 10px, 10px -10px, -10px 0;
+}
+
+.stage svg {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+}
+
+@media (max-width: 900px) {
+  main { grid-template-columns: 1fr; }
+  .pane-input { border-right: 0; border-bottom: 1px solid var(--ui-line); }
+}
