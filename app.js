@@ -514,6 +514,23 @@ function serializeSVG(svg) {
     new XMLSerializer().serializeToString(clone);
 }
 
+/** Copy text to the clipboard, with an execCommand fallback for old browsers. */
+async function copyText(text) {
+  if (navigator.clipboard && window.isSecureContext) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  const ok = document.execCommand('copy');
+  ta.remove();
+  if (!ok) throw new Error('copy command was rejected');
+}
+
 function download(blob, filename) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -535,11 +552,12 @@ const esc = (s) => s
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 /**
- * Render the current card as a self-contained HTML document: real, selectable
- * highlighted text (a <pre> with per-token inline colours) inside the window
- * chrome, all styling inlined so it can be dropped into a blog post as-is.
+ * Render the current card as a self-contained HTML fragment: the window chrome
+ * wrapping real, selectable highlighted text (a <pre> with per-token inline
+ * colours), all styling inlined so it can be pasted straight into a blog post.
+ * No gradient backdrop and no document boilerplate — just the code segment.
  */
-function buildHTML() {
+function buildCardHTML() {
   const theme = THEMES[state.theme];
   // Font names use single quotes here so they survive inside a double-quoted
   // HTML style="" attribute (CSS accepts either quote around a family name).
@@ -567,13 +585,6 @@ function buildHTML() {
     return inner || '​';
   }).join('\n');
 
-  const stops = BACKGROUNDS[state.bg];
-  const bgStyle = stops
-    ? `linear-gradient(135deg, ${stops
-        .map((c, i) => `${c} ${(i / Math.max(1, stops.length - 1)) * 100}%`)
-        .join(', ')})`
-    : 'transparent';
-
   const dotD = 2 * Math.max(4, Math.round(fs * 0.35));
   const dots = state.dots ? `<span style="display:inline-flex;gap:${
       Math.round(dotD * 0.55)}px;align-items:center">${
@@ -594,27 +605,12 @@ function buildHTML() {
     ? `box-shadow:0 ${Math.round(fs * 0.9)}px ${Math.round(fs * 2.2)}px rgba(0,0,0,0.38);`
     : '';
 
-  const card = `<div style="display:inline-block;background:${theme.bg};border-radius:${
+  return `<div style="display:inline-block;background:${theme.bg};border-radius:${
       state.radius}px;overflow:hidden;${shadow}">${bar}
-      <pre style="margin:0;padding:${codeInset}px;font-family:${fontStack};font-size:${
-        fs}px;line-height:${lh}px;color:${theme.fg};white-space:pre;-webkit-font-smoothing:auto"><code>${
-        rows}</code></pre>
-    </div>`;
-
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${esc(titleText || 'code')}</title>
-</head>
-<body style="margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#e9ecef">
-<div style="background:${bgStyle};padding:${state.padding}px;display:inline-block">
-  ${card}
-</div>
-</body>
-</html>
-`;
+  <pre style="margin:0;padding:${codeInset}px;font-family:${fontStack};font-size:${
+    fs}px;line-height:${lh}px;color:${theme.fg};white-space:pre;-webkit-font-smoothing:auto"><code>${
+    rows}</code></pre>
+</div>`;
 }
 
 /** Rasterize the current SVG to a PNG blob at `state.scale`. */
@@ -842,11 +838,15 @@ function init() {
     );
   });
 
-  $('btn-html').addEventListener('click', () => {
-    download(
-      new Blob([buildHTML()], { type: 'text/html;charset=utf-8' }),
-      `${baseFilename()}.html`
-    );
+  $('btn-html').addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    try {
+      await copyText(buildCardHTML());
+      flash(btn, 'Copied!');
+    } catch (err) {
+      flash(btn, 'Copy failed');
+      console.error(err);
+    }
   });
 
   $('btn-png').addEventListener('click', async (e) => {
