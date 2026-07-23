@@ -198,6 +198,7 @@ const state = {
 
 const TAB_WIDTH = 4;
 const SVG_NS = 'http://www.w3.org/2000/svg';
+const XML_NS = 'http://www.w3.org/XML/1998/namespace';
 
 const $ = (id) => document.getElementById(id);
 
@@ -317,7 +318,12 @@ function charWidth(fontStack, fontSize) {
 function el(name, attrs = {}, text) {
   const node = document.createElementNS(SVG_NS, name);
   for (const [k, v] of Object.entries(attrs)) {
-    if (v !== null && v !== undefined) node.setAttribute(k, String(v));
+    if (v === null || v === undefined) continue;
+    // `xml:space` lives in the XML namespace; a plain setAttribute puts it in
+    // the null namespace, where Chrome's inline-SVG renderer ignores it and
+    // collapses leading whitespace. setAttributeNS makes it the real thing.
+    if (k === 'xml:space') node.setAttributeNS(XML_NS, k, String(v));
+    else node.setAttribute(k, String(v));
   }
   if (text !== undefined) node.textContent = text;
   return node;
@@ -477,13 +483,17 @@ function buildSVG() {
 
     const line = el('text', { y, fill: theme.fg });
     for (const seg of segs) {
-      // Each segment is absolutely positioned by column, so small differences
-      // in font metrics can never shift the rest of the line.
+      // Drop each segment's leading whitespace and start its tspan at the first
+      // visible column. Indentation is then carried entirely by the absolute x,
+      // never by rendered space glyphs — so it can't collapse or drift.
+      const lead = seg.text.length - seg.text.trimStart().length;
+      const text = seg.text.slice(lead);
+      if (!text) continue;
       line.appendChild(el('tspan', {
-        x: codeX + seg.col * cw,
+        x: codeX + (seg.col + lead) * cw,
         fill: seg.color,
         'xml:space': 'preserve',
-      }, seg.text));
+      }, text));
     }
     textGroup.appendChild(line);
   });
@@ -519,6 +529,92 @@ function download(blob, filename) {
 function baseFilename() {
   const t = state.title.trim().replace(/\.[^.]+$/, '').replace(/[^\w.-]+/g, '-');
   return t || 'nicecode';
+}
+
+const esc = (s) => s
+  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+/**
+ * Render the current card as a self-contained HTML document: real, selectable
+ * highlighted text (a <pre> with per-token inline colours) inside the window
+ * chrome, all styling inlined so it can be dropped into a blog post as-is.
+ */
+function buildHTML() {
+  const theme = THEMES[state.theme];
+  // Font names use single quotes here so they survive inside a double-quoted
+  // HTML style="" attribute (CSS accepts either quote around a family name).
+  const fontStack = FONTS[state.font].replace(/"/g, "'");
+  const fs = state.fontSize;
+  const lh = Math.round(fs * 1.55);
+  const codeInset = Math.round(fs * 1.3);
+  const barHeight = Math.round(fs * 2.4);
+
+  const lines = tokenize(state.code, state.lang, theme);
+  while (lines.length > 1 && lines[lines.length - 1].length === 0) lines.pop();
+
+  const digits = String(lines.length).length;
+  const rows = lines.map((segs, i) => {
+    // white-space:pre keeps every space, so segment text (indentation and all)
+    // goes in verbatim — no absolute positioning needed in the HTML path.
+    let inner = segs
+      .map((s) => `<span style="color:${s.color}">${esc(s.text)}</span>`)
+      .join('');
+    if (state.nums) {
+      const n = esc(String(i + 1).padStart(digits, ' '));
+      inner = `<span style="color:${theme.gutter}">${n}  </span>${inner}`;
+    }
+    // A blank line still needs a character so the row keeps its height.
+    return inner || '​';
+  }).join('\n');
+
+  const stops = BACKGROUNDS[state.bg];
+  const bgStyle = stops
+    ? `linear-gradient(135deg, ${stops
+        .map((c, i) => `${c} ${(i / Math.max(1, stops.length - 1)) * 100}%`)
+        .join(', ')})`
+    : 'transparent';
+
+  const dotD = 2 * Math.max(4, Math.round(fs * 0.35));
+  const dots = state.dots ? `<span style="display:inline-flex;gap:${
+      Math.round(dotD * 0.55)}px;align-items:center">${
+      ['#ff5f57', '#febc2e', '#28c840'].map((c) =>
+        `<span style="width:${dotD}px;height:${dotD}px;border-radius:50%;background:${c};display:inline-block"></span>`
+      ).join('')}</span>` : '';
+
+  const titleText = state.title.trim();
+  const titleEl = titleText ? `<span style="position:absolute;left:0;right:0;text-align:center;color:${
+      theme.gutter};font-family:${fontStack};font-size:${Math.round(fs * 0.82)}px;pointer-events:none">${
+      esc(titleText)}</span>` : '';
+
+  const bar = state.titlebar ? `
+      <div style="height:${barHeight}px;display:flex;align-items:center;position:relative;padding:0 ${
+        codeInset}px;border-bottom:1px solid rgba(255,255,255,0.07)">${dots}${titleEl}</div>` : '';
+
+  const shadow = state.shadow
+    ? `box-shadow:0 ${Math.round(fs * 0.9)}px ${Math.round(fs * 2.2)}px rgba(0,0,0,0.38);`
+    : '';
+
+  const card = `<div style="display:inline-block;background:${theme.bg};border-radius:${
+      state.radius}px;overflow:hidden;${shadow}">${bar}
+      <pre style="margin:0;padding:${codeInset}px;font-family:${fontStack};font-size:${
+        fs}px;line-height:${lh}px;color:${theme.fg};white-space:pre;-webkit-font-smoothing:auto"><code>${
+        rows}</code></pre>
+    </div>`;
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${esc(titleText || 'code')}</title>
+</head>
+<body style="margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#e9ecef">
+<div style="background:${bgStyle};padding:${state.padding}px;display:inline-block">
+  ${card}
+</div>
+</body>
+</html>
+`;
 }
 
 /** Rasterize the current SVG to a PNG blob at `state.scale`. */
@@ -743,6 +839,13 @@ function init() {
     download(
       new Blob([serializeSVG(svg)], { type: 'image/svg+xml;charset=utf-8' }),
       `${baseFilename()}.svg`
+    );
+  });
+
+  $('btn-html').addEventListener('click', () => {
+    download(
+      new Blob([buildHTML()], { type: 'text/html;charset=utf-8' }),
+      `${baseFilename()}.html`
     );
   });
 

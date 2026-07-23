@@ -1,6 +1,7 @@
 # nicecode
 
-Paste code, get a good-looking picture of it. Exports **PNG** and **SVG**.
+Paste code, get a good-looking picture of it. Exports **PNG**, **SVG**, and a
+self-contained **HTML** page (selectable text, all CSS inlined).
 
 Live: <https://lemire.github.io/nicecode/>
 
@@ -12,6 +13,11 @@ never leaves the page.
 The preview *is* an SVG. "Download SVG" serializes exactly the element you are
 looking at, and "Download PNG" rasterizes that same element onto a canvas. There
 is no second rendering path, so the preview and the exports cannot drift apart.
+
+"Export HTML" is the one exception: it reuses the same tokens and palette but
+emits a standalone HTML document — a `<pre>` of highlighted, still-selectable
+text inside the window chrome, with every style inlined — for pasting straight
+into a blog post or CMS.
 
 Syntax highlighting comes from [highlight.js][hljs] (loaded from jsDelivr).
 Rather than using its stylesheets, `app.js` maps highlight.js token classes onto
