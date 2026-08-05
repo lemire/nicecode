@@ -188,7 +188,7 @@ const state = {
   padding: 48,
   radius: 14,
   scale: 2,
-  title: 'Main.java',
+  title: '',
   dots: true,
   titlebar: true,
   nums: false,
